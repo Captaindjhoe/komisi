@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>💰 Pencatatan Komisi</title>
+
+    <!-- SheetJS untuk export Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* ─── CSS Variables ─── */
+        :root {
+            --bg-body: #f0f4f8;
+            --bg-card: #ffffff;
+            --bg-header: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border-color: #e9edf2;
+            --bg-stat: #f8fafc;
+            --bg-table-header: #f1f5f9;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            --input-border: #e2e8f0;
+            --bg-filter: #fff;
+            --toast-bg: #0f172a;
+            --success: #15803d;
+            --danger: #991b1b;
+            --danger-bg: #fecaca;
+        }
+
+        body.dark-mode {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-header: linear-gradient(135deg, #0f172a, #1e3a5f);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --bg-stat: #1e293b;
+            --bg-table-header: #334155;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --input-border: #334155;
+            --bg-filter: #1e293b;
+            --toast-bg: #f1f5f9;
+        }
+
+        body.dark-mode .toast {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        /* ─── Reset & Base ─── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px 16px 40px;
+            display: flex;
+            justify-content: center;
+            transition: background 0.3s, color 0.3s;
+        }
+        .app {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            background: var(--bg-header);
+            color: #fff;
+            padding: 16px 24px 14px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+            text-align: center;
+            position: relative;
+            transition: background 0.3s;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .header h1 span {
+            font-size: 26px;
+        }
+        .header p {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-top: 2px;
+            font-weight: 300;
+            letter-spacing: 0.3px;
+        }
+        .header-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .theme-toggle {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+            line-height: 1.4;
+        }
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        /* ─── Card Container ─── */
+        .card {
+            background: var(--bg-card);
+            border-radius: 0 0 20px 20px;
+            padding: 20px 18px 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        /* ─── Form ─── */
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--input-border);
+            border-radius: 12px;
+            font-size: 15px;
+            background: var(--bg-filter);
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
+            font-family: inherit;
+        }
+        .form-group input:focus {
+            border-color: #2d6a9f;
+            outline: none;
+        }
+        .form-group input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .form-group input[type="number"]::-webkit-outer-spin-button,
+        .form-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #2d6a9f;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(45, 106, 159, 0.3);
+        }
+        .btn-submit:hover {
+            background: #1e3a5f;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(45, 106, 159, 0.4);
+        }
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        /* ─── Total Display ─── */
+        .total-display {
+            background: linear-gradient(135deg, #065f46, #059669);
+            color: #fff;
+            padding: 18px 20px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
+        }
+        .total-display .label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        .total-display .value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        /* ─── Stats Grid ─── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--bg-stat);
+            border-radius: 12px;
+            padding: 10px 8px;
+            text-align: center;
+            transition: background 0.3s;
+        }
+        .stat-card .num {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+        .stat-card .label {
+            font-size: 9px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 2px;
+        }
+
+        /* ─── Filter ─── */
+        .filter-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        .filter-area input {
+            padding: 8px 12px;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-filter);
+            color: var(--text-primary);
+            flex: 1 1 120px;
+            min-width: 100px;
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .filter-area input:focus {
+            border-color: #2d6a9f;
+            outline: none;
+        }
+        .filter-area .btn-sm {
+            flex: 0 0 auto;
+        }
+
+        /* ─── Buttons ─── */
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-sm:active {
+            transform: scale(0.95);
+        }
+        .btn-export {
+            background: #e0e7ff;
+            color: #3730a3;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn-export:hover {
+            background: #c7d2fe;
+            box-shadow: 0 4px 12px rgba(55, 48, 163, 0.15);
+        }
+        .btn-sync {
+            background: #c7d2fe;
+            color: #3730a3;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn-sync:hover {
+            background: #a5b4fc;
+        }
+
+        /* ─── Table ─── */
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.3s;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 300px;
+        }
+        thead {
+            background: var(--bg-table-header);
+            transition: background 0.3s;
+        }
+        th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        td {
+            padding: 10px 12px;
+            border-top: 1px solid var(--border-color);
+            vertical-align: middle;
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .empty-row td {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 24px 12px;
+            font-style: italic;
+        }
+        .jumlah {
+            font-weight: 700;
+            color: var(--success);
+        }
+        .btn-delete-row {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-delete-row:hover {
+            background: #fca5a5;
+        }
+
+        /* ─── Footer ─── */
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 12px 0 4px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 18px;
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        /* ─── Toast ─── */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--toast-bg);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 14px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.20);
+            opacity: 0;
+            transition: all 0.4s ease;
+            pointer-events: none;
+            z-index: 999;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: #065f46;
+            color: #fff;
+        }
+        .toast.error {
+            background: #991b1b;
+            color: #fff;
+        }
+        .toast.info {
+            background: #1e3a5f;
+            color: #fff;
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .card { padding: 16px 12px 20px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .filter-area input { flex: 1 1 100%; }
+            .total-display .value { font-size: 26px; }
+        }
+        @media (max-width: 380px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+
+        <!-- HEADER -->
+        <header class="header">
+            <h1><span>💰</span> Pencatatan Komisi</h1>
+            <p>Catat komisi harian Anda</p>
+            <div class="header-controls">
+                <button class="theme-toggle" id="themeToggle" title="Ganti tema">☀️</button>
+            </div>
+        </header>
+
+        <div class="card">
+
+            <!-- Total Display -->
+            <div class="total-display">
+                <div class="label">Total Komisi</div>
+                <div class="value" id="totalKomisi">Rp 0</div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="num" id="statJumlahData">0</div>
+                    <div class="label">Total Data</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num" id="statBulanIni">Rp 0</div>
+                    <div class="label">Bulan Ini</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num" id="statRataRata">Rp 0</div>
+                    <div class="label">Rata-rata</div>
+                </div>
+            </div>
+
+            <!-- Form Input -->
+            <div class="card-title" style="margin-top:18px;">➕ Tambah Komisi</div>
+            <form id="formKomisi">
+                <div class="form-group">
+                    <label for="inputTanggal">Tanggal</label>
+                    <input type="date" id="inputTanggal" required />
+                </div>
+                <div class="form-group">
+                    <label for="inputJumlah">Jumlah (Rp)</label>
+                    <input type="number" id="inputJumlah" placeholder="Contoh: 50000" min="0" step="1000" required />
+                </div>
+                <button type="submit" class="btn-submit">💾 Simpan Komisi</button>
+            </form>
+
+            <!-- Filter -->
+            <div class="card-title" style="margin-top:24px;">🔍 Filter Data</div>
+            <div class="filter-area">
+                <input type="month" id="filterBulan" />
+                <button class="btn-sm" id="btnFilterBulan" style="background:#e2e8f0;">Terapkan</button>
+                <button class="btn-sm" id="btnResetFilter" style="background:#f1f5f9;">Reset</button>
+            </div>
+
+            <!-- Tabel Riwayat -->
+            <div class="card-title" style="margin-top:18px;">📂 Riwayat Komisi</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th class="text-right">Jumlah</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelBody">
+                        <tr class="empty-row">
+                            <td colspan="3">Belum ada data komisi</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Export & Sync -->
+            <button class="btn-export" id="btnExport">📊 Export ke Excel</button>
+            <button class="btn-sync" id="btnSync">☁️ Sinkronkan ke Google Sheet</button>
+
+            <!-- Footer -->
+            <div class="footer">
+                Data tersimpan di perangkat Anda &bull; <span id="recordCount">0</span> catatan
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ─── JAVASCRIPT ─── -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ─── KONFIGURASI ───
+            // Ganti dengan URL Sheet.best Anda + /rows
+            // Contoh: https://api.sheetbest.com/sheets/xxxx/rows
+            const SHEET_URL = 'https://api.sheetbest.com/sheets/GANTI_DENGAN_ID_ANDA/rows';
+
+            // ─── DOM refs ───
+            const themeToggle = document.getElementById('themeToggle');
+            const formKomisi = document.getElementById('formKomisi');
+            const inputTanggal = document.getElementById('inputTanggal');
+            const inputJumlah = document.getElementById('inputJumlah');
+            const tabelBody = document.getElementById('tabelBody');
+            const totalKomisi = document.getElementById('totalKomisi');
+            const statJumlahData = document.getElementById('statJumlahData');
+            const statBulanIni = document.getElementById('statBulanIni');
+            const statRataRata = document.getElementById('statRataRata');
+            const filterBulan = document.getElementById('filterBulan');
+            const btnFilterBulan = document.getElementById('btnFilterBulan');
+            const btnResetFilter = document.getElementById('btnResetFilter');
+            const btnExport = document.getElementById('btnExport');
+            const btnSync = document.getElementById('btnSync');
+            const recordCount = document.getElementById('recordCount');
+            const toast = document.getElementById('toast');
+
+            let currentFilter = { month: '' };
+            let toastTimer = null;
+
+            // ─── Data ───
+            const STORAGE_KEY = 'komisi_data_simple';
+
+            function loadData() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    return raw ? JSON.parse(raw) : [];
+                } catch {
+                    return [];
+                }
+            }
+
+            function saveData(data) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            // ─── Helpers ───
+            function todayStr() {
+                const d = new Date();
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+
+            function formatDateDisplay(dateStr) {
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return dateStr;
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            function formatRupiah(num) {
+                if (isNaN(num) || num === null) return 'Rp 0';
+                return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+            }
+
+            function showToast(message, type = 'info', duration = 2800) {
+                if (toastTimer) clearTimeout(toastTimer);
+                toast.textContent = message;
+                toast.className = 'toast ' + type;
+                void toast.offsetWidth;
+                toast.classList.add('show');
+                toastTimer = setTimeout(() => {
+                    toast.classList.remove('show');
+                    toastTimer = null;
+                }, duration);
+            }
+
+            // ─── Dark Mode ───
+            function loadThemePreference() {
+                const saved = localStorage.getItem('komisi_theme');
+                if (saved === 'dark') {
+                    document.body.classList.add('dark-mode');
+                    themeToggle.textContent = '🌙';
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    themeToggle.textContent = '☀️';
+                }
+            }
+
+            function toggleTheme() {
+                if (document.body.classList.contains('dark-mode')) {
+                    document.body.classList.remove('dark-mode');
+                    themeToggle.textContent = '☀️';
+                    localStorage.setItem('komisi_theme', 'light');
+                } else {
+                    document.body.classList.add('dark-mode');
+                    themeToggle.textContent = '🌙';
+                    localStorage.setItem('komisi_theme', 'dark');
+                }
+            }
+
+            // ─── Render ───
+            function render() {
+                const data = loadData();
+                const sorted = [...data].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+
+                let filtered = sorted;
+                if (currentFilter.month) {
+                    filtered = sorted.filter(item => item.tanggal.startsWith(currentFilter.month));
+                }
+
+                // Tabel
+                if (filtered.length === 0) {
+                    tabelBody.innerHTML = `<tr class="empty-row"><td colspan="3">Belum ada data komisi</td></tr>`;
+                } else {
+                    let html = '';
+                    filtered.forEach(item => {
+                        html += `
+                            <tr>
+                                <td>${formatDateDisplay(item.tanggal)}</td>
+                                <td class="text-right jumlah">${formatRupiah(item.jumlah)}</td>
+                                <td class="text-center">
+                                    <button class="btn-delete-row" onclick="window._deleteItem('${item.id}')">Hapus</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    tabelBody.innerHTML = html;
+                }
+
+                // Total
+                const total = filtered.reduce((sum, item) => sum + (Number(item.jumlah) || 0), 0);
+                totalKomisi.textContent = formatRupiah(total);
+
+                // Stats
+                statJumlahData.textContent = filtered.length;
+
+                const currentMonth = todayStr().substring(0, 7);
+                const bulanIni = data.filter(item => item.tanggal.startsWith(currentMonth));
+                const totalBulanIni = bulanIni.reduce((sum, item) => sum + (Number(item.jumlah) || 0), 0);
+                statBulanIni.textContent = formatRupiah(totalBulanIni);
+
+                const rataRata = filtered.length > 0 ? total / filtered.length : 0;
+                statRataRata.textContent = formatRupiah(rataRata);
+
+                recordCount.textContent = data.length;
+            }
+
+            // ─── Delete ───
+            window._deleteItem = function(id) {
+                if (!confirm('Hapus data ini?')) return;
+                const data = loadData();
+                const filtered = data.filter(item => item.id !== id);
+                saveData(filtered);
+                render();
+                showToast('🗑️ Data berhasil dihapus.', 'info');
+            };
+
+            // ─── Form Submit ───
+            formKomisi.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const tanggal = inputTanggal.value;
+                const jumlah = Number(inputJumlah.value);
+
+                if (!tanggal) { showToast('⚠️ Pilih tanggal.', 'error'); return; }
+                if (!jumlah || jumlah <= 0) { showToast('⚠️ Masukkan jumlah yang valid.', 'error'); return; }
+
+                const data = loadData();
+                const newItem = {
+                    id: 'k_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    tanggal: tanggal,
+                    jumlah: jumlah,
+                    timestamp: Date.now()
+                };
+                data.push(newItem);
+                saveData(data);
+
+                // Reset form
+                inputJumlah.value = '';
+                inputTanggal.value = todayStr();
+                inputJumlah.focus();
+
+                render();
+                showToast(`✅ Komisi ${formatRupiah(jumlah)} berhasil disimpan!`, 'success');
+
+                // Auto sync ke Google Sheet
+                syncToSheet(newItem).catch(() => {});
+            });
+
+            // ─── Filter ───
+            btnFilterBulan.addEventListener('click', () => {
+                currentFilter.month = filterBulan.value;
+                render();
+                if (filterBulan.value) {
+                    showToast(`🔍 Menampilkan data bulan ${filterBulan.value}`, 'info');
+                }
+            });
+
+            btnResetFilter.addEventListener('click', () => {
+                filterBulan.value = '';
+                currentFilter.month = '';
+                render();
+                showToast('🔄 Filter direset.', 'info');
+            });
+
+            // ─── Export Excel ───
+            btnExport.addEventListener('click', () => {
+                const data = loadData();
+                if (data.length === 0) {
+                    showToast('📭 Tidak ada data untuk diexport.', 'info');
+                    return;
+                }
+                try {
+                    const sorted = [...data].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+                    const rows = [['Tanggal', 'Jumlah']];
+                    sorted.forEach(item => {
+                        rows.push([item.tanggal, item.jumlah]);
+                    });
+                    const total = sorted.reduce((sum, item) => sum + (Number(item.jumlah) || 0), 0);
+                    rows.push(['', 'TOTAL', total]);
+
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(rows);
+                    ws['!cols'] = [{ wch: 14 }, { wch: 16 }];
+                    XLSX.utils.book_append_sheet(wb, ws, 'Komisi');
+                    XLSX.writeFile(wb, `Komisi_${todayStr()}.xlsx`);
+                    showToast('📊 Excel berhasil diexport!', 'success');
+                } catch (err) {
+                    console.error('Export error:', err);
+                    showToast('❌ Gagal export: ' + err.message, 'error');
+                }
+            });
+
+            // ─── Sync ke Google Sheet ───
+            async function syncToSheet(item) {
+                if (!SHEET_URL || SHEET_URL.includes('GANTI_DENGAN_ID_ANDA')) {
+                    console.warn('⚠️ URL Sheet belum diatur.');
+                    return;
+                }
+                const recordData = {
+                    Tanggal: item.tanggal,
+                    Jumlah: item.jumlah
+                };
+                try {
+                    const response = await fetch(SHEET_URL, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify([recordData]),
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+                    const result = await response.json();
+                    console.log('✅ Data terkirim ke Sheet:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ Gagal sync:', error.message);
+                    throw error;
+                }
+            }
+
+            btnSync.addEventListener('click', async () => {
+                const data = loadData();
+                if (data.length === 0) {
+                    showToast('📭 Tidak ada data untuk disinkronkan.', 'info');
+                    return;
+                }
+                if (!SHEET_URL || SHEET_URL.includes('GANTI_DENGAN_ID_ANDA')) {
+                    showToast('⚠️ URL Sheet belum diatur di kode.', 'error');
+                    return;
+                }
+                showToast('⏳ Mengirim data ke Cloud...', 'info');
+                let successCount = 0;
+                let failCount = 0;
+                const sorted = [...data].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+                for (const item of sorted) {
+                    try {
+                        await syncToSheet(item);
+                        successCount++;
+                    } catch (e) {
+                        failCount++;
+                    }
+                }
+                if (failCount === 0) {
+                    showToast(`✅ ${successCount} data berhasil disinkronkan!`, 'success');
+                } else {
+                    showToast(`⚠️ ${successCount} berhasil, ${failCount} gagal.`, 'error');
+                }
+            });
+
+            // ─── Init ───
+            function init() {
+                loadThemePreference();
+                themeToggle.addEventListener('click', toggleTheme);
+
+                inputTanggal.value = todayStr();
+
+                const currentMonth = todayStr().substring(0, 7);
+                filterBulan.value = currentMonth;
+                currentFilter.month = currentMonth;
+
+                render();
+
+                console.log('💰 Aplikasi Pencatatan Komisi siap digunakan');
+                console.log('📊 Header Google Sheet: Tanggal | Jumlah');
+                console.log('☁️ URL Sheet:', SHEET_URL);
+            }
+
+            init();
+
+        })();
+    </script>
+
+</body>
+</html>
